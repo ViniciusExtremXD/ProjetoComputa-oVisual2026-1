@@ -59,13 +59,11 @@ Use imagens em `assets/` como amostra/demo. O programa funciona com qualquer cam
 
 ### Assets de amostra (opcional)
 
-Os nomes abaixo são apenas referência de teste:
+Os arquivos abaixo existem no repositório e podem ser usados nos testes:
 
-- `assets/sample_color.png` (imagem colorida)
-- `assets/sample_gray.png` (imagem já em escala de cinza)
-- `assets/sample_contrast.jpg` (imagem de contraste forte)
-
-Você pode substituir esses arquivos por qualquer imagem equivalente.
+- `assets/gato.png`
+- `assets/paisagem.png`
+- `assets/carro.png`
 
 ### GUI
 
@@ -82,8 +80,8 @@ make run IMAGE=caminho/para/imagem.png
 Exemplo recomendado:
 
 ```bash
-make run IMAGE=assets/sample_color.png
-./build/main assets/sample_gray.png
+make run IMAGE=assets/gato.png
+./build/main assets/paisagem.png
 ```
 
 ### Headless
@@ -101,8 +99,8 @@ make test-headless IMAGE=caminho/para/imagem.png
 Exemplo recomendado:
 
 ```bash
-make test-headless IMAGE=assets/sample_contrast.jpg
-./build/main --nogui assets/sample_contrast.jpg
+make test-headless IMAGE=assets/carro.png
+./build/main --nogui assets/carro.png
 ```
 
 ## Saídas geradas no modo headless

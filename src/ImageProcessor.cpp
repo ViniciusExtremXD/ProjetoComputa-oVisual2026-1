@@ -1,15 +1,17 @@
-/**
- * @file ImageProcessor.cpp
- * @brief Implementação do núcleo de carregamento e processamento das imagens.
+/*
+ * Arquivo: ImageProcessor.cpp
  * 
- * Faz o trabalho pesado do projeto: carrega a imagem, converte para
- * escala de cinza, aplica equalização de histograma e salva o resultado
- * no formato mais adequado disponível.
+ * Descrição:
+ * Implementa as rotinas de carregamento, conversão para escala de cinza,
+ * equalização de histograma e salvamento das imagens processadas.
  * 
- * @authors
- *  Rodrigo Rosalles - 10409316
- *  Vinícius Magno - 10401365
- * @date 2025
+ * Contexto:
+ * Centraliza a lógica de transformação da imagem usada pela GUI e pelo
+ * modo headless, preservando a imagem base para reversão sem recarregamento.
+ * 
+ * Autores:
+ * Rodrigo Rosalles - 10409316
+ * Vinícius Magno - 10401365
  */
 
 #include "../include/ImageProcessor.h"
@@ -30,9 +32,6 @@
 
 namespace {
 
-/**
- * @brief Constantes para processamento de imagens
- */
 namespace image_constants {
     constexpr int HISTOGRAM_LEVELS = 256;               // Níveis de histograma (0-255)
     constexpr int JPEG_QUALITY = 95;                    // Qualidade padrão JPEG
@@ -58,9 +57,6 @@ namespace image_constants {
     constexpr std::string_view TEMP_PREFIX = "processador_output_";
 }
 
-/**
- * @brief Estrutura RAII para bloqueio automático de superfícies SDL
- */
 class SurfaceLocker {
 public:
     explicit SurfaceLocker(SDL_Surface* surface) : surface_(surface), is_locked_(false) {
@@ -88,28 +84,12 @@ private:
     bool is_locked_;
 };
 
-/**
- * @brief Wrapper RAII para superfícies SDL
- */
 using SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)>;
 
-/**
- * @brief Cria wrapper RAII para superfície SDL
- * 
- * @param surface Superfície SDL a ser gerenciada
- * @return Ponteiro único para gerenciamento automático
- */
 [[nodiscard]] SurfacePtr makeSurfacePtr(SDL_Surface* surface) noexcept {
     return SurfacePtr(surface, SDL_DestroySurface);
 }
 
-/**
- * @brief Salva superfície como PNG com compatibilidade de versão
- * 
- * @param surface Superfície a ser salva
- * @param file_path Caminho do arquivo de destino
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool saveSurfaceAsPng(SDL_Surface* surface, const char* file_path) noexcept {
     if (!surface || !file_path) return false;
     
@@ -120,14 +100,6 @@ using SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)>;
 #endif
 }
 
-/**
- * @brief Salva superfície como JPEG com compatibilidade de versão
- * 
- * @param surface Superfície a ser salva
- * @param file_path Caminho do arquivo de destino
- * @param quality Qualidade JPEG (0-100)
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool saveSurfaceAsJpeg(SDL_Surface* surface, const char* file_path, int quality) noexcept {
     if (!surface || !file_path) return false;
     
@@ -138,13 +110,6 @@ using SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)>;
 #endif
 }
 
-/**
- * @brief Salva superfície como BMP com compatibilidade de versão
- * 
- * @param surface Superfície a ser salva
- * @param file_path Caminho do arquivo de destino
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool saveSurfaceAsBmp(SDL_Surface* surface, const char* file_path) noexcept {
     if (!surface || !file_path) return false;
     
@@ -155,11 +120,6 @@ using SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)>;
 #endif
 }
 
-/**
- * @brief Obtém mensagem de erro de imagem com compatibilidade de versão
- * 
- * @return String com mensagem de erro
- */
 [[nodiscard]] std::string getImageErrorMessage() noexcept {
 #if defined(SDL_IMAGE_VERSION_ATLEAST)
 #if SDL_IMAGE_VERSION_ATLEAST(3, 0, 0)
@@ -175,26 +135,10 @@ using SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)>;
     return error_msg ? error_msg : "";
 }
 
-/**
- * @brief Verifica se um pixel é em escala de cinza
- * 
- * @param red Componente vermelho
- * @param green Componente verde
- * @param blue Componente azul
- * @return true se é escala de cinza
- */
 [[nodiscard]] constexpr bool isPixelGrayscale(Uint8 red, Uint8 green, Uint8 blue) noexcept {
     return red == green && green == blue;
 }
 
-/**
- * @brief Converte valores RGB para escala de cinza usando luminância
- * 
- * @param red Componente vermelho
- * @param green Componente verde
- * @param blue Componente azul
- * @return Valor em escala de cinza
- */
 [[nodiscard]] constexpr Uint8 rgbToGrayscale(Uint8 red, Uint8 green, Uint8 blue) noexcept {
     return static_cast<Uint8>(
         image_constants::LUMINANCE_RED * red +
@@ -203,36 +147,16 @@ using SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)>;
     );
 }
 
-/**
- * @brief Lê valor de pixel de forma segura
- * 
- * @param pixel_data Dados do pixel
- * @param bytes_per_pixel Bytes por pixel
- * @return Valor do pixel
- */
 [[nodiscard]] Uint32 readPixelValue(const Uint8* pixel_data, int bytes_per_pixel) noexcept {
     Uint32 pixel_value = 0;
     std::memcpy(&pixel_value, pixel_data, bytes_per_pixel);
     return pixel_value;
 }
 
-/**
- * @brief Escreve valor de pixel de forma segura
- * 
- * @param pixel_data Dados de destino
- * @param pixel_value Valor a ser escrito
- * @param bytes_per_pixel Bytes por pixel
- */
 void writePixelValue(Uint8* pixel_data, Uint32 pixel_value, int bytes_per_pixel) noexcept {
     std::memcpy(pixel_data, &pixel_value, bytes_per_pixel);
 }
 
-/**
- * @brief Cria superfície em escala de cinza a partir de uma imagem colorida
- * 
- * @param source_surface Superfície de origem
- * @return Ponteiro para superfície em escala de cinza ou nullptr se falhar
- */
 [[nodiscard]] SDL_Surface* createGrayscaleSurface(SDL_Surface* source_surface) {
     if (!source_surface) {
         SDL_SetError("Superfície de origem é nula");
@@ -306,13 +230,6 @@ void writePixelValue(Uint8* pixel_data, Uint32 pixel_value, int bytes_per_pixel)
     return gray_surface.release();
 }
 
-/**
- * @brief Substitui extensão de arquivo
- * 
- * @param file_path Caminho original
- * @param new_extension Nova extensão
- * @return Caminho com nova extensão
- */
 [[nodiscard]] std::string replaceFileExtension(const std::string& file_path, 
                                                std::string_view new_extension) {
     std::filesystem::path path(file_path);
@@ -320,13 +237,6 @@ void writePixelValue(Uint8* pixel_data, Uint32 pixel_value, int bytes_per_pixel)
     return path.string();
 }
 
-/**
- * @brief Gera caminho temporário único
- * 
- * @param base_name Nome base do arquivo
- * @param extension Extensão do arquivo
- * @return Caminho temporário único
- */
 [[nodiscard]] std::string generateTempPath(std::string_view base_name, 
                                           std::string_view extension) {
     const auto timestamp = std::time(nullptr);
@@ -337,12 +247,6 @@ void writePixelValue(Uint8* pixel_data, Uint32 pixel_value, int bytes_per_pixel)
            std::string(extension);
 }
 
-/**
- * @brief Testa se é possível escrever em um caminho
- * 
- * @param file_path Caminho a ser testado
- * @return true se pode escrever
- */
 [[nodiscard]] bool testWriteAccess(const std::string& file_path) noexcept {
     std::FILE* test_file = std::fopen(file_path.c_str(), "wb");
     if (!test_file) {
@@ -359,12 +263,6 @@ void writePixelValue(Uint8* pixel_data, Uint32 pixel_value, int bytes_per_pixel)
     return write_success;
 }
 
-/**
- * @brief Registra informações de debug sobre uma superfície
- * 
- * @param surface Superfície a ser analisada
- * @param context Contexto para logging
- */
 void logSurfaceInfo(SDL_Surface* surface, std::string_view context) noexcept {
     if (!surface) {
         std::cerr << "[DEBUG] " << context << ": superfície nula\n";
@@ -383,14 +281,7 @@ void logSurfaceInfo(SDL_Surface* surface, std::string_view context) noexcept {
 }
 
 } // namespace
-
-// =====================================================
 // IMPLEMENTAÇÃO DA CLASSE IMAGEPROCESSOR
-// =====================================================
-
-/**
- * @brief Construtor padrão - inicializa processador vazio
- */
 ImageProcessor::ImageProcessor() 
     : original_image_{nullptr}
     , grayscale_image_{nullptr}
@@ -398,19 +289,10 @@ ImageProcessor::ImageProcessor()
     , is_equalized_{false} {
 }
 
-/**
- * @brief Destrutor - limpeza automática de recursos
- */
 ImageProcessor::~ImageProcessor() {
     clearAllSurfaces();
 }
 
-/**
- * @brief Carrega imagem de arquivo e converte para escala de cinza
- * 
- * @param file_path Caminho do arquivo de imagem
- * @return true se carregou com sucesso
- */
 [[nodiscard]] bool ImageProcessor::loadImage(const char* file_path) {
     if (!file_path) {
         std::cerr << "Erro: caminho de arquivo nulo\n";
@@ -459,12 +341,6 @@ ImageProcessor::~ImageProcessor() {
     return true;
 }
 
-/**
- * @brief Verifica se uma imagem já está em escala de cinza
- * 
- * @param surface Superfície a ser verificada
- * @return true se está em escala de cinza
- */
 [[nodiscard]] bool ImageProcessor::isImageGrayscale(SDL_Surface* surface) const {
     if (!surface) return false;
     
@@ -507,9 +383,6 @@ ImageProcessor::~ImageProcessor() {
     return true;
 }
 
-/**
- * @brief Converte imagem atual para escala de cinza
- */
 void ImageProcessor::convertToGrayscale() {
     if (!original_image_) return;
     
@@ -534,9 +407,6 @@ void ImageProcessor::convertToGrayscale() {
     is_equalized_ = false;
 }
 
-/**
- * @brief Aplica equalização de histograma à imagem em escala de cinza
- */
 void ImageProcessor::equalizeHistogram() {
     if (!grayscale_image_) return;
     
@@ -601,9 +471,6 @@ void ImageProcessor::equalizeHistogram() {
     is_equalized_ = true;
 }
 
-/**
- * @brief Restaura imagem para estado original (antes da equalização)
- */
 void ImageProcessor::restoreOriginal() {
     if (current_image_ && current_image_ != grayscale_image_) {
         SDL_DestroySurface(current_image_);
@@ -613,12 +480,6 @@ void ImageProcessor::restoreOriginal() {
     is_equalized_ = false;
 }
 
-/**
- * @brief Salva imagem atual em arquivo
- * 
- * @param file_path Caminho do arquivo de destino
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool ImageProcessor::saveImage(const char* file_path) const {
     if (!current_image_) {
         std::cerr << "Erro: nenhuma imagem para salvar\n";
@@ -639,67 +500,30 @@ void ImageProcessor::restoreOriginal() {
            tryEmergencySave(path_string);
 }
 
-/**
- * @brief Obtém largura da imagem atual
- * 
- * @return Largura em pixels
- */
 [[nodiscard]] int ImageProcessor::getWidth() const noexcept {
     return current_image_ ? current_image_->w : 0;
 }
 
-/**
- * @brief Obtém altura da imagem atual
- * 
- * @return Altura em pixels
- */
 [[nodiscard]] int ImageProcessor::getHeight() const noexcept {
     return current_image_ ? current_image_->h : 0;
 }
 
-/**
- * @brief Obtém ponteiro para superfície da imagem atual
- * 
- * @return Ponteiro para SDL_Surface ou nullptr
- */
 [[nodiscard]] SDL_Surface* ImageProcessor::getCurrentImage() const noexcept {
     return current_image_;
 }
 
-/**
- * @brief Obtém ponteiro para superfície da imagem original
- * 
- * @return Ponteiro para SDL_Surface ou nullptr
- */
 [[nodiscard]] SDL_Surface* ImageProcessor::getOriginalImage() const noexcept {
     return original_image_;
 }
 
-/**
- * @brief Obtém ponteiro para a imagem base em escala de cinza
- *
- * @return Ponteiro para SDL_Surface ou nullptr
- */
 [[nodiscard]] SDL_Surface* ImageProcessor::getGrayscaleImage() const noexcept {
     return grayscale_image_;
 }
 
-/**
- * @brief Verifica se a imagem atual foi equalizada
- * 
- * @return true se foi equalizada
- */
 [[nodiscard]] bool ImageProcessor::getIsEqualized() const noexcept {
     return is_equalized_;
 }
-
-// =====================================================
 // MÉTODOS PRIVADOS DE IMPLEMENTAÇÃO
-// =====================================================
-
-/**
- * @brief Limpa todas as superfícies SDL gerenciadas
- */
 void ImageProcessor::clearAllSurfaces() noexcept {
     // Limpar current_image_ se for diferente das outras
     if (current_image_ && 
@@ -722,13 +546,6 @@ void ImageProcessor::clearAllSurfaces() noexcept {
     }
 }
 
-/**
- * @brief Calcula histograma de uma imagem
- * 
- * @param surface Superfície da imagem
- * @param histogram Array para armazenar resultado
- * @return true se calculou com sucesso
- */
 [[nodiscard]] bool ImageProcessor::calculateImageHistogram(
     SDL_Surface* surface, 
     std::array<int, image_constants::HISTOGRAM_LEVELS>& histogram) const {
@@ -774,12 +591,6 @@ void ImageProcessor::clearAllSurfaces() noexcept {
     return true;
 }
 
-/**
- * @brief Aplica mapeamento de intensidade à imagem
- * 
- * @param intensity_mapping Array de mapeamento de intensidades
- * @return true se aplicou com sucesso
- */
 [[nodiscard]] bool ImageProcessor::applyIntensityMapping(
     const std::array<Uint8, image_constants::HISTOGRAM_LEVELS>& intensity_mapping) {
     
@@ -862,12 +673,6 @@ void ImageProcessor::clearAllSurfaces() noexcept {
     return true;
 }
 
-/**
- * @brief Tenta salvar como PNG
- * 
- * @param file_path Caminho do arquivo
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool ImageProcessor::tryPngSave(const std::string& file_path) const {
     if (saveSurfaceAsPng(current_image_, file_path.c_str())) {
         std::cout << "Imagem salva com sucesso em: " << file_path << '\n';
@@ -880,12 +685,6 @@ void ImageProcessor::clearAllSurfaces() noexcept {
     return false;
 }
 
-/**
- * @brief Tenta salvar como BMP
- * 
- * @param file_path Caminho do arquivo
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool ImageProcessor::tryBmpSave(const std::string& file_path) const {
     const std::string bmp_path = replaceFileExtension(file_path, image_constants::BMP_EXTENSION);
     
@@ -920,12 +719,6 @@ void ImageProcessor::clearAllSurfaces() noexcept {
     return false;
 }
 
-/**
- * @brief Tenta salvar como JPEG
- * 
- * @param file_path Caminho do arquivo
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool ImageProcessor::tryJpegSave(const std::string& file_path) const {
     const std::string jpeg_path = replaceFileExtension(file_path, image_constants::JPG_EXTENSION);
     
@@ -940,12 +733,6 @@ void ImageProcessor::clearAllSurfaces() noexcept {
     return false;
 }
 
-/**
- * @brief Tenta salvamento de emergência em diretório temporário
- * 
- * @param file_path Caminho do arquivo original
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool ImageProcessor::tryEmergencySave(const std::string& file_path) const {
     // Extrair nome base do arquivo
     const std::filesystem::path original_path(file_path);
@@ -970,3 +757,5 @@ void ImageProcessor::clearAllSurfaces() noexcept {
     std::cerr << "Erro: todas as tentativas de salvamento falharam\n";
     return false;
 }
+
+

@@ -1,15 +1,17 @@
-/**
- * @file Histogram.cpp
- * @brief Implementação da classe Histogram para análise e desenho do histograma.
+/*
+ * Arquivo: Histogram.cpp
  * 
- * Este arquivo concentra o cálculo das estatísticas da imagem, a
- * renderização do histograma na interface e a exportação dos dados em
- * arquivos auxiliares.
+ * Descrição:
+ * Implementa o cálculo do histograma, métricas estatísticas e rotinas de
+ * renderização e exportação dos dados da imagem em escala de cinza.
  * 
- * @authors
- *  Rodrigo Rosalles - 10409316
- *  Vinícius Magno - 10401365
- * @date 2025
+ * Contexto:
+ * Fornece os indicadores usados na janela secundária da interface e nas
+ * saídas do modo headless para análise formal dos resultados.
+ * 
+ * Autores:
+ * Rodrigo Rosalles - 10409316
+ * Vinícius Magno - 10401365
  */
 
 #include "Histogram.h"
@@ -27,9 +29,6 @@
 
 namespace {
 
-/**
- * @brief Constantes para renderização de histogramas
- */
 namespace histogram_constants {
     constexpr int INTENSITY_LEVELS = 256;          // Níveis de intensidade (0-255)
     constexpr double EPSILON = 1e-9;               // Tolerância para operações de ponto flutuante
@@ -60,9 +59,6 @@ namespace histogram_constants {
     constexpr int MIN_PADDING_TOP = 6;
 }
 
-/**
- * @brief Classificações textuais
- */
 namespace classifications {
     constexpr std::string_view DARK_INTENSITY = "escura";
     constexpr std::string_view MEDIUM_INTENSITY = "media";
@@ -73,13 +69,6 @@ namespace classifications {
     constexpr std::string_view HIGH_CONTRAST = "alto";
 }
 
-/**
- * @brief Salva superfície SDL como PNG com compatibilidade de versão
- * 
- * @param surface Superfície SDL a ser salva
- * @param file_path Caminho do arquivo de destino
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool saveSurfaceAsPng(SDL_Surface* surface, const char* file_path) noexcept {
     if (!surface || !file_path) return false;
     
@@ -90,14 +79,6 @@ namespace classifications {
 #endif
 }
 
-/**
- * @brief Lê pixel de uma superfície SDL de forma segura
- * 
- * @param pixel_base Ponteiro base dos pixels
- * @param pixel_index Índice do pixel
- * @param bytes_per_pixel Bytes por pixel
- * @return Valor do pixel como Uint32
- */
 [[nodiscard]] constexpr Uint32 readPixelValue(const Uint8* pixel_base, int pixel_index, 
                                                Uint8 bytes_per_pixel) noexcept {
     Uint32 pixel_value = 0;
@@ -105,12 +86,6 @@ namespace classifications {
     return pixel_value;
 }
 
-/**
- * @brief Limpa superfície SDL com cor especificada
- * 
- * @param surface Superfície a ser limpa
- * @param clear_color Cor de preenchimento
- */
 void clearSurfaceWithColor(SDL_Surface* surface, const SDL_Color& clear_color) noexcept {
     if (!surface) return;
     
@@ -133,18 +108,6 @@ void clearSurfaceWithColor(SDL_Surface* surface, const SDL_Color& clear_color) n
     }
 }
 
-/**
- * @brief Renderiza barras do histograma usando SDL renderer
- * 
- * @param renderer Renderer SDL para desenho
- * @param x Posição X inicial
- * @param y Posição Y inicial  
- * @param width Largura da área de desenho
- * @param height Altura da área de desenho
- * @param histogram_data Array com dados do histograma
- * @param max_value Valor máximo para normalização
- * @param bar_color Cor das barras
- */
 void renderHistogramBars(SDL_Renderer* renderer, int x, int y, int width, int height,
                         const std::array<int, histogram_constants::INTENSITY_LEVELS>& histogram_data, 
                         int max_value, const SDL_Color& bar_color) noexcept {
@@ -173,15 +136,6 @@ void renderHistogramBars(SDL_Renderer* renderer, int x, int y, int width, int he
     }
 }
 
-/**
- * @brief Define pixel em superfície SDL de forma segura
- * 
- * @param surface Superfície de destino
- * @param x Coordenada X
- * @param y Coordenada Y
- * @param pixel_color Cor do pixel
- * @param format_details Detalhes do formato de pixel
- */
 void setSurfacePixel(SDL_Surface* surface, int x, int y, const SDL_Color& pixel_color,
                     const SDL_PixelFormatDetails* format_details) noexcept {
     if (!surface || !format_details || 
@@ -199,13 +153,6 @@ void setSurfacePixel(SDL_Surface* surface, int x, int y, const SDL_Color& pixel_
                 &mapped_pixel, format_details->bytes_per_pixel);
 }
 
-/**
- * @brief Calcula estatísticas básicas de um histograma
- * 
- * @param histogram_data Dados do histograma
- * @param total_pixels Total de pixels processados
- * @return Par com média e desvio padrão
- */
 [[nodiscard]] std::pair<float, float> calculateHistogramStatistics(
     const std::array<int, histogram_constants::INTENSITY_LEVELS>& histogram_data,
     int total_pixels) noexcept {
@@ -232,14 +179,7 @@ void setSurfacePixel(SDL_Surface* surface, int x, int y, const SDL_Color& pixel_
 }
 
 } // namespace
-
-// =====================================================
 // IMPLEMENTAÇÃO DA CLASSE HISTOGRAM
-// =====================================================
-
-/**
- * @brief Construtor padrão - inicializa histograma vazio
- */
 Histogram::Histogram() 
     : mean_{0.0f}
     , std_deviation_{0.0f}
@@ -248,14 +188,6 @@ Histogram::Histogram()
     data_.fill(0);
 }
 
-/**
- * @brief Calcula histograma de uma imagem SDL
- * 
- * Processa todos os pixels da imagem, extraindo valores de intensidade
- * em escala de cinza e calculando estatísticas associadas.
- * 
- * @param image_surface Superfície SDL da imagem a ser analisada
- */
 void Histogram::calculate(SDL_Surface* image_surface) {
     // Reinicializar estado
     data_.fill(0);
@@ -317,15 +249,6 @@ void Histogram::calculate(SDL_Surface* image_surface) {
     std_deviation_ = calculated_std_dev;
 }
 
-/**
- * @brief Renderiza histograma básico
- * 
- * @param renderer Renderer SDL para desenho
- * @param x Posição X do histograma
- * @param y Posição Y do histograma
- * @param width Largura da área de desenho
- * @param height Altura da área de desenho
- */
 void Histogram::draw(SDL_Renderer* renderer, int x, int y, int width, int height) const {
     if (!renderer || max_value_ <= 0 || width <= 0 || height <= 0) return;
     
@@ -360,20 +283,6 @@ void Histogram::draw(SDL_Renderer* renderer, int x, int y, int width, int height
     SDL_RenderRect(renderer, &border_rect);
 }
 
-/**
- * @brief Renderiza histograma com sobreposição de outro histograma
- * 
- * Permite comparação visual entre dois histogramas diferentes,
- * útil para comparar imagem original vs processada.
- * 
- * @param renderer Renderer SDL para desenho
- * @param x Posição X do histograma
- * @param y Posição Y do histograma
- * @param width Largura da área de desenho
- * @param height Altura da área de desenho
- * @param overlay_histogram Histograma a ser sobreposto
- * @param overlay_color Cor do histograma sobreposto
- */
 void Histogram::drawWithOverlay(SDL_Renderer* renderer, int x, int y, int width, int height,
                                const Histogram& overlay_histogram, 
                                const SDL_Color& overlay_color) const {
@@ -418,11 +327,6 @@ void Histogram::drawWithOverlay(SDL_Renderer* renderer, int x, int y, int width,
     SDL_RenderRect(renderer, &border_rect);
 }
 
-/**
- * @brief Classifica intensidade da imagem baseada na média
- * 
- * @return String com classificação ("escura", "media", "clara")
- */
 [[nodiscard]] std::string Histogram::getIntensityClassification() const {
     if (mean_ < histogram_constants::DARK_INTENSITY_THRESHOLD) {
         return std::string(classifications::DARK_INTENSITY);
@@ -433,11 +337,6 @@ void Histogram::drawWithOverlay(SDL_Renderer* renderer, int x, int y, int width,
     return std::string(classifications::BRIGHT_INTENSITY);
 }
 
-/**
- * @brief Classifica contraste da imagem baseado no desvio padrão
- * 
- * @return String com classificação ("baixo", "medio", "alto")
- */
 [[nodiscard]] std::string Histogram::getContrastClassification() const {
     if (std_deviation_ < histogram_constants::LOW_CONTRAST_THRESHOLD) {
         return std::string(classifications::LOW_CONTRAST);
@@ -448,12 +347,6 @@ void Histogram::drawWithOverlay(SDL_Renderer* renderer, int x, int y, int width,
     return std::string(classifications::HIGH_CONTRAST);
 }
 
-/**
- * @brief Salva dados do histograma em formato CSV
- * 
- * @param file_path Caminho do arquivo CSV de destino
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool Histogram::saveCSV(const std::string& file_path) const {
     if (total_pixels_ <= 0) return false;
     
@@ -471,12 +364,6 @@ void Histogram::drawWithOverlay(SDL_Renderer* renderer, int x, int y, int width,
     return true;
 }
 
-/**
- * @brief Salva resumo estatístico em arquivo de texto
- * 
- * @param file_path Caminho do arquivo de texto de destino
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool Histogram::saveSummary(const std::string& file_path) const {
     if (total_pixels_ <= 0) return false;
     
@@ -496,17 +383,6 @@ void Histogram::drawWithOverlay(SDL_Renderer* renderer, int x, int y, int width,
     return true;
 }
 
-/**
- * @brief Salva imagem do histograma como arquivo PNG
- * 
- * Gera uma representação gráfica standalone do histograma,
- * incluindo eixos e formatação adequada para visualização.
- * 
- * @param file_path Caminho do arquivo PNG de destino
- * @param image_width Largura da imagem (padrão: 800)
- * @param image_height Altura da imagem (padrão: 600)
- * @return true se salvou com sucesso
- */
 [[nodiscard]] bool Histogram::savePlotImage(const std::string& file_path, 
                                            int image_width, int image_height) const {
     // Validar parâmetros de entrada
@@ -589,39 +465,21 @@ void Histogram::drawWithOverlay(SDL_Renderer* renderer, int x, int y, int width,
     // Salvar como PNG
     return saveSurfaceAsPng(plot_surface, file_path.c_str());
 }
-
-// =====================================================
 // MÉTODOS GETTERS INLINE
-// =====================================================
-
-/**
- * @brief Obtém média de intensidade
- * @return Média calculada
- */
 [[nodiscard]] float Histogram::getMean() const noexcept {
     return mean_;
 }
 
-/**
- * @brief Obtém desvio padrão
- * @return Desvio padrão calculado
- */
 [[nodiscard]] float Histogram::getStdDev() const noexcept {
     return std_deviation_;
 }
 
-/**
- * @brief Obtém valor máximo do histograma
- * @return Valor máximo
- */
 [[nodiscard]] int Histogram::getMaxValue() const noexcept {
     return max_value_;
 }
 
-/**
- * @brief Obtém total de pixels processados
- * @return Número total de pixels
- */
 [[nodiscard]] int Histogram::getTotalPixels() const noexcept {
     return total_pixels_;
 }
+
+

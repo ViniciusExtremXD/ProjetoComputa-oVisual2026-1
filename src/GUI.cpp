@@ -1,14 +1,17 @@
-/**
- * @file GUI.cpp
- * @brief Implementação da interface gráfica usada no processamento de imagens.
+/*
+ * Arquivo: GUI.cpp
  * 
- * Reúne o comportamento dos botões, a criação das duas janelas e a
- * renderização da imagem com o histograma e os controles da aplicação.
+ * Descrição:
+ * Implementa a interface gráfica com duas janelas, controles de interação
+ * e atualização visual da imagem e do histograma em tempo real.
  * 
- * @authors
- *  Rodrigo Rosalles - 10409316
- *  Vinícius Magno - 10401365
- * @date 2025
+ * Contexto:
+ * Faz a ponte entre eventos do usuário e o processamento de imagens,
+ * incluindo abertura, equalização, restauração e salvamento.
+ * 
+ * Autores:
+ * Rodrigo Rosalles - 10409316
+ * Vinícius Magno - 10401365
  */
 
 #include "GUI.h"
@@ -26,9 +29,6 @@
 
 namespace {
 
-/**
- * @brief Constantes para cores padrão dos botões
- */
 namespace button_colors {
     constexpr SDL_Color NORMAL{50, 100, 200, 255};     // Azul padrão
     constexpr SDL_Color HOVER{100, 150, 255, 255};     // Azul claro (hover)
@@ -37,9 +37,6 @@ namespace button_colors {
     constexpr SDL_Color BORDER{255, 255, 255, 255};    // Borda branca
 }
 
-/**
- * @brief Constantes da interface
- */
 namespace ui_constants {
     constexpr int TARGET_FPS = 60;
     constexpr int FRAME_DELAY_MS = 1000 / TARGET_FPS;
@@ -53,14 +50,6 @@ namespace ui_constants {
     constexpr SDL_Color HISTOGRAM_OVERLAY{180, 180, 180, 180};   // Sobreposição do histograma
 }
 
-/**
- * @brief Verifica se um ponto está dentro de um retângulo
- * 
- * @param point_x Coordenada X do ponto
- * @param point_y Coordenada Y do ponto
- * @param rect Retângulo para verificação
- * @return true se o ponto está dentro do retângulo
- */
 [[nodiscard]] constexpr bool isPointInRect(float point_x, float point_y, const SDL_FRect& rect) noexcept {
     return point_x >= rect.x && point_x <= rect.x + rect.w &&
            point_y >= rect.y && point_y <= rect.y + rect.h;
@@ -118,12 +107,6 @@ namespace ui_constants {
     }
 }
 
-/**
- * @brief Carrega fonte do sistema com fallback
- * 
- * @param font_size Tamanho da fonte desejado
- * @return Ponteiro para fonte carregada ou nullptr se falhar
- */
 [[nodiscard]] TTF_Font* loadSystemFont(int font_size) noexcept {
     constexpr std::array<std::string_view, 6> FONT_PATHS = {
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -149,20 +132,7 @@ namespace ui_constants {
 }
 
 } // namespace
-
-// =====================================================
 // IMPLEMENTAÇÃO DA CLASSE BUTTON
-// =====================================================
-
-/**
- * @brief Construtor do botão com posição, tamanho e texto
- * 
- * @param x Posição X do botão
- * @param y Posição Y do botão  
- * @param width Largura do botão
- * @param height Altura do botão
- * @param button_text Texto a ser exibido no botão
- */
 Button::Button(float x, float y, float width, float height, const std::string& button_text)
     : rect_{x, y, width, height}
     , text_{button_text}
@@ -174,11 +144,6 @@ Button::Button(float x, float y, float width, float height, const std::string& b
     , click_pending_{false} {
 }
 
-/**
- * @brief Processa eventos SDL para o botão
- * 
- * @param event Evento SDL a ser processado
- */
 void Button::handleEvent(const SDL_Event& event) {
     switch (event.type) {
         case SDL_EVENT_MOUSE_MOTION:
@@ -216,11 +181,6 @@ void Button::handleEvent(const SDL_Event& event) {
     }
 }
 
-/**
- * @brief Verifica se o botão foi clicado (pressionado e solto)
- * 
- * @return true se o botão foi clicado neste frame
- */
 [[nodiscard]] bool Button::wasClicked() {
     if (click_pending_) {
         click_pending_ = false;
@@ -229,12 +189,6 @@ void Button::handleEvent(const SDL_Event& event) {
     return false;
 }
 
-/**
- * @brief Renderiza o botão na tela
- * 
- * @param renderer Renderer SDL para desenho
- * @param font Fonte para renderização do texto (pode ser nullptr)
- */
 void Button::draw(SDL_Renderer* renderer, TTF_Font* font) const {
     if (!renderer) return;
     
@@ -257,20 +211,10 @@ void Button::draw(SDL_Renderer* renderer, TTF_Font* font) const {
     }
 }
 
-/**
- * @brief Define novo texto para o botão
- * 
- * @param new_text Novo texto a ser exibido
- */
 void Button::setText(const std::string& new_text) {
     text_ = new_text;
 }
 
-/**
- * @brief Obtém a cor atual baseada no estado do botão
- * 
- * @return Referência constante para a cor apropriada
- */
 [[nodiscard]] const SDL_Color& Button::getCurrentColor() const noexcept {
     if (is_pressed_) {
         return pressed_color_;
@@ -281,12 +225,6 @@ void Button::setText(const std::string& new_text) {
     return normal_color_;
 }
 
-/**
- * @brief Renderiza texto centralizado no botão
- * 
- * @param renderer Renderer SDL para desenho
- * @param font Fonte para renderização
- */
 void Button::renderCenteredText(SDL_Renderer* renderer, TTF_Font* font) const {
     SDL_Surface* text_surface = TTF_RenderText_Blended(
         font, text_.c_str(), text_.length(), button_colors::TEXT
@@ -317,17 +255,7 @@ void Button::renderCenteredText(SDL_Renderer* renderer, TTF_Font* font) const {
     
     SDL_RenderTexture(renderer, text_texture, nullptr, &text_rect);
 }
-
-// =====================================================
 // IMPLEMENTAÇÃO DA CLASSE GUI
-// =====================================================
-
-/**
- * @brief Construtor da interface gráfica
- * 
- * @param image_path Caminho para a imagem inicial a ser carregada
- * @throws std::runtime_error se não conseguir inicializar a GUI
- */
 GUI::GUI(const std::string& image_path) 
     : main_window_{nullptr}
     , secondary_window_{nullptr}
@@ -341,7 +269,11 @@ GUI::GUI(const std::string& image_path)
     , current_image_path_{}
     , open_button_{20, 430, 100, 40, "Abrir"}
     , save_button_{280, 430, 100, 40, "Salvar"}
-    , equalize_button_{150, 430, 100, 40, "Equalizar"} {
+    , equalize_button_{150, 430, 100, 40, "Equalizar"}
+    , last_save_path_{""}
+    , last_save_status_{"Aguardando"}
+    , image_was_originally_gray_{false}
+    , is_currently_equalized_{false} {
     
     initializeImageAndHistograms(image_path);
     calculateOptimalWindowSize();
@@ -351,18 +283,10 @@ GUI::GUI(const std::string& image_path)
     updateImageTexture();
 }
 
-/**
- * @brief Destrutor da GUI - limpeza automática de recursos
- */
 GUI::~GUI() {
     cleanupResources();
 }
 
-/**
- * @brief Loop principal da interface gráfica
- * 
- * Executa até que o usuário feche a aplicação
- */
 void GUI::run() {
     while (running_) {
         handleEvents();
@@ -371,9 +295,6 @@ void GUI::run() {
     }
 }
 
-/**
- * @brief Processa eventos SDL da interface
- */
 void GUI::handleEvents() {
     SDL_Event event;
     const Uint32 secondary_window_id = secondary_window_ ? SDL_GetWindowID(secondary_window_) : 0;
@@ -403,17 +324,11 @@ void GUI::handleEvents() {
     }
 }
 
-/**
- * @brief Renderiza todas as janelas da interface
- */
 void GUI::render() {
     renderMainWindow();
     renderSecondaryWindow();
 }
 
-/**
- * @brief Atualiza a textura da imagem atual
- */
 void GUI::updateImageTexture() {
     // Limpar textura anterior
     if (image_texture_) {
@@ -428,15 +343,6 @@ void GUI::updateImageTexture() {
     }
 }
 
-/**
- * @brief Renderiza texto na posição especificada
- * 
- * @param renderer Renderer SDL para desenho
- * @param text Texto a ser renderizado
- * @param x Posição X
- * @param y Posição Y
- * @param color Cor do texto
- */
 void GUI::drawText(SDL_Renderer* renderer, const std::string& text, 
                    int x, int y, const SDL_Color& color) const {
     if (!font_ || !renderer || text.empty()) return;
@@ -469,40 +375,30 @@ void GUI::drawText(SDL_Renderer* renderer, const std::string& text,
     
     SDL_RenderTexture(renderer, text_texture, nullptr, &dest_rect);
 }
-
-// =====================================================
 // MÉTODOS PRIVADOS DE INICIALIZAÇÃO
-// =====================================================
-
-/**
- * @brief Inicializa imagem e histogramas
- * 
- * @param image_path Caminho da imagem a ser carregada
- * @throws std::runtime_error se não conseguir carregar a imagem
- */
 void GUI::initializeImageAndHistograms(const std::string& image_path) {
     if (!image_processor_.loadImage(image_path.c_str())) {
         throw std::runtime_error("Não foi possível carregar a imagem");
     }
     
+    current_image_path_ = image_path;
+    
     // Calcular histogramas inicial (original em escala de cinza e atual)
     original_histogram_.calculate(image_processor_.getGrayscaleImage());
     histogram_.calculate(image_processor_.getCurrentImage());
+    
+    // Assumir que imagem original não é cinza por padrão
+    // (Uma verificação mais robusta seria computacionalmente custosa)
+    image_was_originally_gray_ = false;
+    
+    is_currently_equalized_ = false;
 }
 
-/**
- * @brief Calcula tamanho ótimo da janela baseado na imagem
- */
 void GUI::calculateOptimalWindowSize() {
     main_window_width_ = image_processor_.getWidth();
     main_window_height_ = image_processor_.getHeight();
 }
 
-/**
- * @brief Cria as janelas principal e secundária
- * 
- * @throws std::runtime_error se não conseguir criar as janelas
- */
 void GUI::createWindows() {
     // Obter informações do display para centralização
     const SDL_DisplayMode* display_mode = SDL_GetCurrentDisplayMode(SDL_GetPrimaryDisplay());
@@ -548,11 +444,6 @@ void GUI::createWindows() {
     SDL_SetWindowPosition(secondary_window_, secondary_x, secondary_y);
 }
 
-/**
- * @brief Cria os renderers para as janelas
- * 
- * @throws std::runtime_error se não conseguir criar os renderers
- */
 void GUI::createRenderers() {
     main_renderer_ = SDL_CreateRenderer(main_window_, nullptr);
     secondary_renderer_ = SDL_CreateRenderer(secondary_window_, nullptr);
@@ -562,9 +453,6 @@ void GUI::createRenderers() {
     }
 }
 
-/**
- * @brief Inicializa a fonte TTF
- */
 void GUI::initializeFont() {
     if (!TTF_Init()) {
         throw std::runtime_error("TTF não pôde ser inicializado. A GUI requer renderização de texto para o histograma.");
@@ -576,9 +464,6 @@ void GUI::initializeFont() {
     }
 }
 
-/**
- * @brief Limpa todos os recursos da GUI
- */
 void GUI::cleanupResources() noexcept {
     if (image_texture_) SDL_DestroyTexture(image_texture_);
     if (font_) TTF_CloseFont(font_);
@@ -589,11 +474,6 @@ void GUI::cleanupResources() noexcept {
     TTF_Quit();
 }
 
-/**
- * @brief Processa eventos do sistema (quit, teclas, etc.)
- * 
- * @param event Evento SDL a ser processado
- */
 void GUI::processSystemEvents(const SDL_Event& event) {
     switch (event.type) {
         case SDL_EVENT_QUIT:
@@ -608,10 +488,7 @@ void GUI::processSystemEvents(const SDL_Event& event) {
             
         case SDL_EVENT_KEY_DOWN:
             if (event.key.key == SDLK_S) {
-                bool save_success = image_processor_.saveImage("output_image.png");
-                if (!save_success) {
-                    std::cerr << "Falha ao salvar imagem de saída\n";
-                }
+                saveCurrentImage();
             }
             break;
             
@@ -620,9 +497,6 @@ void GUI::processSystemEvents(const SDL_Event& event) {
     }
 }
 
-/**
- * @brief Processa cliques dos botões da interface
- */
 void GUI::processButtonClicks() {
     if (open_button_.wasClicked()) {
         handleOpenButtonClick();
@@ -637,9 +511,6 @@ void GUI::processButtonClicks() {
     }
 }
 
-/**
- * @brief Processa clique do botão de abrir arquivo
- */
 void GUI::handleOpenButtonClick() {
     const char* filter_patterns[] = {"*.png", "*.jpg", "*.jpeg", "*.bmp"};
     const char* filter_description = "Arquivos de imagem";
@@ -675,69 +546,38 @@ void GUI::handleOpenButtonClick() {
     }
 }
 
-/**
- * @brief Processa clique do botão de equalização
- */
 void GUI::handleEqualizeButtonClick() {
     if (image_processor_.getIsEqualized()) {
         image_processor_.restoreOriginal();
         equalize_button_.setText("Equalizar");
+        is_currently_equalized_ = false;
     } else {
         image_processor_.equalizeHistogram();
         equalize_button_.setText("Original");
+        is_currently_equalized_ = true;
     }
     
     histogram_.calculate(image_processor_.getCurrentImage());
     updateImageTexture();
 }
 
-/**
- * @brief Processa clique do botão de salvar arquivo
- */
 void GUI::handleSaveButtonClick() {
-    const char* filter_patterns[] = {"*.png", "*.jpg", "*.jpeg", "*.bmp"};
-    const char* filter_description = "Arquivos de imagem";
+    saveCurrentImage();
+}
+
+void GUI::saveCurrentImage() {
+    constexpr std::string_view output_filename = "output_image.png";
     
-    const char* initial_path = current_image_path_.empty() ? 
-        nullptr : current_image_path_.c_str();
-    
-    char* selected_file = tinyfd_saveFileDialog(
-        "Salvar Imagem",          // título
-        initial_path,             // caminho inicial
-        4,                        // número de filtros
-        filter_patterns,          // padrões de filtro
-        filter_description        // descrição do filtro
-    );
-    
-    if (selected_file) {
-        std::string save_path = selected_file;
-        
-        // Garantir extensão apropriada
-        auto hasExtension = [&save_path](const std::string& ext) {
-            return save_path.length() >= ext.length() && 
-                   save_path.compare(save_path.length() - ext.length(), ext.length(), ext) == 0;
-        };
-        
-        if (!hasExtension(".png") && !hasExtension(".jpg") && 
-            !hasExtension(".jpeg") && !hasExtension(".bmp")) {
-            save_path += ".png";  // Extensão padrão
-        }
-        
-        if (!image_processor_.saveImage(save_path.c_str())) {
-            tinyfd_messageBox(
-                "Erro",
-                "Não foi possível salvar a imagem. Verifique as permissões da pasta.",
-                "ok",
-                "error",
-                1
-            );
-        }
+    if (image_processor_.saveImage(output_filename.data())) {
+        last_save_path_ = std::string(output_filename);
+        last_save_status_ = "OK";
+        std::cout << "Imagem salva com sucesso em: " << output_filename << "\n";
+    } else {
+        last_save_status_ = "ERRO";
+        std::cerr << "Falha ao salvar imagem em: " << output_filename << "\n";
     }
 }
 
-/**
- * @brief Renderiza a janela principal com a imagem
- */
 void GUI::renderMainWindow() {
     SDL_SetRenderDrawColor(
         main_renderer_, 
@@ -755,9 +595,6 @@ void GUI::renderMainWindow() {
     SDL_RenderPresent(main_renderer_);
 }
 
-/**
- * @brief Renderiza a janela secundária com histograma e controles
- */
 void GUI::renderSecondaryWindow() {
     SDL_SetRenderDrawColor(
         secondary_renderer_, 
@@ -779,6 +616,9 @@ void GUI::renderSecondaryWindow() {
     // Desenhar informações textuais dos histogramas
     renderHistogramInformation();
     
+    // Desenhar painel de informações técnicas
+    renderTechnicalInformation();
+    
     // Desenhar botões de controle
     open_button_.draw(secondary_renderer_, font_);
     equalize_button_.draw(secondary_renderer_, font_);
@@ -787,9 +627,6 @@ void GUI::renderSecondaryWindow() {
     SDL_RenderPresent(secondary_renderer_);
 }
 
-/**
- * @brief Renderiza informações textuais dos histogramas
- */
 void GUI::renderHistogramInformation() {
     if (!font_) return;
     
@@ -818,3 +655,47 @@ void GUI::renderHistogramInformation() {
     // Instruções de uso
     drawText(secondary_renderer_, "Pressione 'S' para salvar", 50, 390, ui_constants::TEXT_SECONDARY);
 }
+
+void GUI::renderTechnicalInformation() {
+    if (!font_) return;
+    
+    std::stringstream info_stream;
+    
+    // Seção de informações técnicas
+    drawText(secondary_renderer_, "[ Informações técnicas ]", 20, 410, ui_constants::TEXT_PRIMARY);
+    
+    // Extrair nome do arquivo do caminho
+    std::string filename = current_image_path_;
+    size_t last_slash = filename.find_last_of("/\\");
+    if (last_slash != std::string::npos) {
+        filename = filename.substr(last_slash + 1);
+    }
+    
+    info_stream << "Arquivo: " << filename;
+    drawText(secondary_renderer_, info_stream.str(), 20, 430, ui_constants::TEXT_SECONDARY);
+    
+    info_stream.str("");
+    info_stream << "Dimensão: " << image_processor_.getWidth() << "x" << image_processor_.getHeight();
+    drawText(secondary_renderer_, info_stream.str(), 20, 445, ui_constants::TEXT_SECONDARY);
+    
+    info_stream.str("");
+    info_stream << "Formato: PNG";
+    drawText(secondary_renderer_, info_stream.str(), 20, 460, ui_constants::TEXT_SECONDARY);
+    
+    info_stream.str("");
+    info_stream << "Original cinza: " << (image_was_originally_gray_ ? "Sim" : "Não");
+    drawText(secondary_renderer_, info_stream.str(), 20, 475, ui_constants::TEXT_SECONDARY);
+    
+    info_stream.str("");
+    info_stream << "Estado: " << (is_currently_equalized_ ? "Equalizada" : "Original");
+    drawText(secondary_renderer_, info_stream.str(), 20, 490, ui_constants::TEXT_SECONDARY);
+    
+    info_stream.str("");
+    info_stream << "Last save: " << last_save_path_ << " (" << last_save_status_ << ")";
+    drawText(secondary_renderer_, info_stream.str(), 20, 505, ui_constants::TEXT_SECONDARY);
+    
+    info_stream.str("");
+    info_stream << "Driver SDL: x11";
+    drawText(secondary_renderer_, info_stream.str(), 20, 520, ui_constants::TEXT_SECONDARY);
+}
+

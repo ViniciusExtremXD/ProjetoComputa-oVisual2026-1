@@ -1,15 +1,17 @@
-/**
- * @file main.cpp
- * @brief Ponto de entrada da aplicação e escolha entre GUI e modo headless.
+/*
+ * Arquivo: main.cpp
  * 
- * Aqui fica o fluxo principal do programa: leitura dos argumentos,
- * inicialização do SDL e seleção entre a interface gráfica e o modo
- * sem janelas usando a flag --nogui.
+ * Descrição:
+ * Ponto de entrada da aplicação, responsável por validar argumentos,
+ * inicializar o SDL e escolher entre execução com GUI ou modo headless.
  * 
- * @authors
- *  Rodrigo Rosalles - 10409316
- *  Vinícius Magno - 10401365
- * @date 2025-09
+ * Contexto:
+ * Coordena o fluxo principal do projeto, conectando processamento de imagem,
+ * geração de saídas e ciclo de execução da interface.
+ * 
+ * Autores:
+ * Rodrigo Rosalles - 10409316
+ * Vinícius Magno - 10401365
  */
 
 #include <filesystem>
@@ -29,18 +31,12 @@
 
 namespace {
 
-/**
- * @brief Estrutura para armazenar o resultado da inicialização do SDL
- */
 struct SdlInitializationResult {
     bool is_initialized{false};
     bool used_fallback{false};
     std::string driver_name;
 };
 
-/**
- * @brief Constantes da aplicação
- */
 namespace constants {
     constexpr std::string_view NO_GUI_FLAG = "--nogui";
     constexpr std::string_view OUTPUT_IMAGE_NAME = "output_image.png";
@@ -53,12 +49,6 @@ namespace constants {
     constexpr std::string_view ORIGINAL_PREFIX = "_original";
 }
 
-/**
- * @brief Registra todos os drivers de vídeo SDL disponíveis no sistema
- * 
- * Esta função lista todos os drivers de vídeo detectados pelo SDL,
- * útil para diagnóstico de problemas de inicialização
- */
 void logAvailableVideoDrivers() noexcept {
     const int driver_count = SDL_GetNumVideoDrivers();
     
@@ -82,15 +72,6 @@ void logAvailableVideoDrivers() noexcept {
     }
 }
 
-/**
- * @brief Inicializa o subsistema de vídeo SDL com fallback para driver dummy
- * 
- * Tenta inicializar o SDL com drivers nativos primeiro. Se falhar,
- * tenta usar o driver "dummy" para permitir operação em modo headless.
- * 
- * @param initialization_flags Flags de inicialização do SDL
- * @return Resultado da inicialização incluindo driver usado e status
- */
 [[nodiscard]] SdlInitializationResult initializeSdlWithFallback(Uint32 initialization_flags) noexcept {
     SdlInitializationResult result;
     logAvailableVideoDrivers();
@@ -149,12 +130,6 @@ void logAvailableVideoDrivers() noexcept {
     return result;
 }
 
-/**
- * @brief Inicializa a biblioteca SDL_image se necessário
- * 
- * SDL_image 3.x não requer inicialização explícita, mas versões
- * anteriores ainda precisam ser inicializadas manualmente.
- */
 void initializeSdlImage() noexcept {
 #if defined(SDL_IMAGE_VERSION_ATLEAST)
 #if !SDL_IMAGE_VERSION_ATLEAST(3, 0, 0)
@@ -173,11 +148,6 @@ void initializeSdlImage() noexcept {
 #endif
 }
 
-/**
- * @brief Limpa recursos da biblioteca SDL_image se necessário
- * 
- * Apenas chama IMG_Quit() para versões que requerem limpeza manual.
- */
 void cleanupSdlImage() noexcept {
 #if defined(SDL_IMAGE_VERSION_ATLEAST)
 #if !SDL_IMAGE_VERSION_ATLEAST(3, 0, 0)
@@ -188,14 +158,6 @@ void cleanupSdlImage() noexcept {
 #endif
 }
 
-/**
- * @brief Salva histograma e dados estatísticos em arquivos de saída
- * 
- * @param histogram Histograma calculado da imagem
- * @param output_directory Diretório de saída
- * @param base_filename Nome base do arquivo (sem extensão)
- * @param file_suffix Sufixo adicional para os arquivos
- */
 void saveHistogramData(const Histogram& histogram, 
                       const std::filesystem::path& output_directory,
                       const std::string& base_filename,
@@ -228,12 +190,6 @@ void saveHistogramData(const Histogram& histogram,
     }
 }
 
-/**
- * @brief Processa imagem em modo headless (sem interface gráfica)
- * 
- * @param image_path Caminho para a imagem de entrada
- * @return Código de saída (0 = sucesso, 1 = erro)
- */
 [[nodiscard]] int processImageHeadless(const std::string& image_path) {
     try {
         // Carregar e processar imagem
@@ -338,23 +294,11 @@ void saveHistogramData(const Histogram& histogram,
     }
 }
 
-/**
- * @brief Exibe informações de uso da aplicação
- * 
- * @param program_name Nome do programa (argv[0])
- */
 void printUsage(const char* program_name) noexcept {
     std::cerr << "Uso: " << program_name << " caminho_da_imagem.ext\n";
     std::cerr << "  ou: " << program_name << " --nogui caminho_da_imagem.ext\n";
 }
 
-/**
- * @brief Analisa argumentos da linha de comando
- * 
- * @param argc Número de argumentos
- * @param argv Array de argumentos
- * @return Par contendo flag no_gui e caminho da imagem, ou std::nullopt se inválido
- */
 [[nodiscard]] std::optional<std::pair<bool, std::string>> parseCommandLineArguments(int argc, char* argv[]) {
     if (argc < 2) {
         printUsage(argv[0]);
@@ -376,17 +320,6 @@ void printUsage(const char* program_name) noexcept {
 
 } // namespace
 
-/**
- * @brief Função principal da aplicação
- * 
- * Suporta dois modos de execução:
- * - Modo GUI: Interface gráfica completa
- * - Modo headless: Processamento em lote sem GUI (--nogui)
- * 
- * @param argc Número de argumentos da linha de comando
- * @param argv Array de argumentos da linha de comando
- * @return Código de saída (0 = sucesso, 1 = erro)
- */
 int main(int argc, char* argv[]) {
     // Analisar argumentos da linha de comando
     const auto command_args = parseCommandLineArguments(argc, argv);
@@ -423,10 +356,7 @@ int main(int argc, char* argv[]) {
             SDL_Quit(); 
         }
     );
-
-    // =====================================================
     // FLUXO: MODO HEADLESS (--NOGUI)
-    // =====================================================
     if (no_gui_mode) {
         return processImageHeadless(image_path);
     }
@@ -437,10 +367,7 @@ int main(int argc, char* argv[]) {
                   << "Execute aplicações headless com --nogui.\n";
         return 1;
     }
-
-    // =====================================================
     // FLUXO: MODO GUI COMPLETO
-    // =====================================================
     try {
         GUI gui(image_path);
         gui.run();
@@ -451,3 +378,5 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
+
