@@ -1,0 +1,39 @@
+# Build e binários
+/build/
+/bin/
+/obj/
+/tmp_test_assets/
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.out
+
+# Arquivos gerados pelo programa
+output_*/
+output_image.png
+
+# Arquivos de debug/log
+*.log
+*.tmp
+gui_*.png
+
+# IDEs e editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Arquivos de teste (imagens grandes ou temporárias)
+assets/test_*.png
+assets/test_*.jpg
+assets/test_*.bmp
+
+# Estrutura auxiliar
+estrutura.txt
+tree
