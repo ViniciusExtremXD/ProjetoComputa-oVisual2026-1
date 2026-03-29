@@ -8,6 +8,7 @@
 # Integrantes:
 #   Rodrigo Rosalles - 10409316
 #   Vinicius Magno   - 10401365
+#   Natalia Teixeira - 10395853
 #
 # Compilacao para C++17 com SDL3, SDL3_image e SDL3_ttf.
 # Compativel com Linux (make) e Windows (mingw32-make / MSYS2).
@@ -18,6 +19,7 @@
 #   make test IMAGE=path      - Testar com imagem especifica
 #   make test-headless IMAGE=path - Testar modo headless
 #   make clean                - Limpar build
+#   make clean-all            - Limpar artefatos gerados
 #   make help                 - Ver todos os targets
 #
 # =============================================================================
@@ -81,8 +83,6 @@ BUILD_DIR   = build
 INCLUDE_DIR = include
 SOURCES_CPP = $(wildcard $(SRC_DIR)/*.cpp)
 OBJECTS_CPP = $(SOURCES_CPP:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
-TINYFD_OBJ  = $(BUILD_DIR)/tinyfiledialogs.o
-ALL_OBJECTS = $(OBJECTS_CPP) $(TINYFD_OBJ)
 
 TARGET = $(BUILD_DIR)/main$(EXE_EXT)
 
@@ -95,9 +95,9 @@ TARGET = $(BUILD_DIR)/main$(EXE_EXT)
 all: banner $(TARGET)
 	@echo Build concluido: $(TARGET)
 
-$(TARGET): $(ALL_OBJECTS) | $(BUILD_DIR)
+$(TARGET): $(OBJECTS_CPP) | $(BUILD_DIR)
 	@echo Linkando executavel...
-	$(CXX) $(ALL_OBJECTS) -o $@ $(SYSTEM_LIB_DIRS) $(SDL_LIBS) $(LDFLAGS)
+	$(CXX) $(OBJECTS_CPP) -o $@ $(SYSTEM_LIB_DIRS) $(SDL_LIBS) $(LDFLAGS)
 	@echo Executavel criado: $@
 
 # =============================================================================
@@ -107,10 +107,6 @@ $(TARGET): $(ALL_OBJECTS) | $(BUILD_DIR)
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp | $(BUILD_DIR)
 	@echo Compilando: $<
 	$(CXX) $(CXXFLAGS) $(SYSTEM_INCLUDE_DIRS) -I$(INCLUDE_DIR) $(SDL_CFLAGS) -c $< -o $@
-
-$(TINYFD_OBJ): $(INCLUDE_DIR)/tinyfiledialogs.c | $(BUILD_DIR)
-	@echo Compilando tinyfiledialogs...
-	$(CC) $(CFLAGS) $(SYSTEM_INCLUDE_DIRS) -I$(INCLUDE_DIR) -c $< -o $@
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
@@ -184,7 +180,7 @@ info:
 
 check-deps:
 ifeq ($(PLATFORM),Linux)
-	@pkg-config --exists sdl3      || (echo "SDL3 nao encontrado" && exit 1)
+	@pkg-config --exists sdl3       || (echo "SDL3 nao encontrado" && exit 1)
 	@pkg-config --exists sdl3-image || (echo "SDL3_image nao encontrado" && exit 1)
 	@pkg-config --exists sdl3-ttf   || (echo "SDL3_ttf nao encontrado" && exit 1)
 	@echo Todas as dependencias encontradas
@@ -196,7 +192,7 @@ banner:
 	@echo ==============================================================
 	@echo  Processamento de Imagens - C++17 com SDL3 - $(PLATFORM)
 	@echo  Universidade Presbiteriana Mackenzie - Computacao Visual
-	@echo  Rodrigo Rosalles 10409316 / Vinicius Magno 10401365
+	@echo  Rodrigo Rosalles 10409316 / Vinicius Magno 10401365 / Natalia Teixeira 10395853
 	@echo ==============================================================
 
 help:
